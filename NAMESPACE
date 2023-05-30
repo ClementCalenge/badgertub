@@ -1,0 +1,32 @@
+S3method(print,APC)
+S3method(print,csiac)
+S3method(summary,APC)
+export("apc", "averageLevel", "averageTrend",
+       "compareSimActual", "coverageCI", "giveXYhomoSens",
+       "nimbleData2df", "nimbleToCoda", "print.APC", "print.csiac",
+       "showSpatialEffects", "simulateIndicator",
+       "simulateInfectionModel", "summary.APC", "summaryModel")
+
+importFrom("stats", "coef", "dist", "lm", "median", "qt", "quantile",
+           "rbeta", "rbinom", "runif", "sd", "vcov")
+importFrom("methods", "as")
+importFrom("graphics", "plot")
+importFrom(MASS,mvrnorm)
+importFrom(MASS,rnegbin)
+importFrom(sf,st_coordinates)
+importFrom(sf,st_centroid)
+importFrom(sf,st_as_sfc)
+importFrom(sf,st_sample)
+importFrom(sf,st_within)
+importFrom(sf,st_bbox)
+importFrom(coda,mcmc)
+importFrom(rlang, .data)
+importFrom(coda,mcmc.list)
+importFrom(ggplot2,coord_sf)
+importFrom(ggplot2,ggplot)
+importFrom(ggplot2, geom_sf)
+importFrom(ggplot2, aes)
+importFrom(ggplot2, theme_void)
+importFrom(ggplot2, theme)
+importFrom(ggplot2, element_rect)
+importFrom(viridis, scale_fill_viridis)

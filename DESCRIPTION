@@ -1,0 +1,15 @@
+Package: badgertub
+Type: Package
+Title: Model of the Mycobacterium Bovis Infection in Badger in France
+Version: 1.0
+Date: 2023-05-10
+Author: Clement Calenge <clement.calenge@ofb.gouv.fr>
+Maintainer: Clement Calenge <clement.calenge@ofb.gouv.fr>
+Depends: R (>= 3.5)
+Imports: sf, viridis, coda, methods, MASS, rlang, ggplot2
+Suggests: adehabitatMA,sp, knitr, nimble, mgcv, spdep
+Description: Code used in the paper by Calenge et al. (in prep.) to model the M bovis infection of three French badger populations by M. bovis.
+VignetteBuilder: knitr
+License: GPL (>= 2)
+NeedsCompilation: no
+Packaged: 2023-05-10 07:24:29 UTC; calenge

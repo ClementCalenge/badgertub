@@ -1,0 +1,1308 @@
+\documentclass[a4paper]{article}
+%\VignetteEngine{knitr::knitr}
+%\VignetteIndexEntry{Assessing the dynamics of Mycobacterium bovis infection in three French badger populations}
+%\VignetteDepends{knitr,ggplot2,nimble,coda,sf,mgcv}
+\usepackage{fancyvrb}
+\usepackage{color}
+\usepackage{url}
+\usepackage{amsfonts}
+%\usepackage{pdfcolmk}
+\usepackage{epsfig}
+\usepackage[colorlinks=true,linkcolor=blue,urlcolor=blue,citecolor=blue]{hyperref}
+%\usepackage{longtable}
+\usepackage{natbib}
+\usepackage{ucs}
+\usepackage{savesym}
+\savesymbol{iint}
+\savesymbol{iiint}
+\usepackage{amsmath}
+%\usepackage{rotating}
+\usepackage[title,titletoc]{appendix}
+%\usepackage[utf8]{inputenc}
+\newlength{\defaultparindent}
+\setlength{\defaultparindent}{\parindent}
+\newenvironment{Default Paragraph Font}{}{}
+\newcommand{\INT}[1]{\stackrel{\circ}{#1}}
+\topmargin -1.5cm
+\headheight 0.5cm
+\headsep 1.0cm
+\topskip 0.5cm
+\textheight 24.5cm
+\footskip 1.0cm
+\oddsidemargin 0.0cm
+\evensidemargin 0.0cm
+\textwidth 16cm
+\parskip 0.2cm
+\parindent 1.0cm
+\baselineskip 0.2cm
+
+
+\title{Appendices to the article: Assessing the dynamics of
+  \emph{Mycobacterium bovis} infection in three badger populations.}
+\author{Cl\'{e}ment Calenge, Ariane Payne, \'{E}douard R\'{e}veillaud,\\
+  C\'{e}line Richomme, S\'{e}bastien Girard \& St\'{e}phanie Desvaux.}  \date{}
+\setlength{\parindent}{0cm}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+\maketitle
+\tableofcontents
+\begin{appendices}
+  
+<<setup, include=FALSE, cache=FALSE>>=
+# set global chunk options
+library('knitr')
+opts_chunk$set(fig.path="badgertub-",
+               fig.align="center",
+               fig.show="hold",
+               echo=TRUE,
+               results="markup",
+               fig.width=10,
+               fig.height=10, out.width='\\linewidth',
+               out.height='\\linewidth',
+               cache=FALSE,
+               dev='png',
+               concordance=TRUE,
+               error=FALSE)
+opts_knit$set(aliases = c(h = 'fig.height',
+              w = 'fig.width',
+              wo='out.width',
+              ho='out.height'))
+options(replace.assign=TRUE,width=60)
+set.seed(9567)
+@
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%                                                            %%%%
+%%%%                  The vignette starts here                  %%%%
+%%%%                                                            %%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\newpage
+
+\section*{Introduction}
+
+
+This vignette is the supplementary material of the article of
+\citet{Calengeinprep.}. The aim of this paper is to model the
+\textit{Mycobacterium bovis} infection in three French badger
+populations between 2013 and 2019, and to propose two new indicators
+for the monitoring of the prevalence mean level and trend in each
+population. A companion package named \texttt{badgertub} contains the
+data and functions used for this paper, and is required to reproduce
+the calculations in this document. The present document is also
+available as a vignette of this package. To install this package,
+first install the package \texttt{devtools} and use the function
+\texttt{install\_github} to install \texttt{badgertub}:
+
+<<eval=FALSE>>=
+## If devtools is not yet installed, type
+install.packages("devtools")
+
+## Install the package badgertub
+devtools::install_github("ClementCalenge/badgertub", ref="main")
+@ 
+
+\textit{Remark}: on Windows, it is required to also install the Rtools
+(\url{https://cran.r-project.org/bin/windows/Rtools/}) on your
+computer to have a working \texttt{devtools} package (see
+\url{https://www.r-project.org/nosvn/pandoc/devtools.html}).\\
+
+Throughout this vignette, we suppose that the reader is familiar with
+the model and simulations developed in the main paper. More precisely:\\
+
+\begin{itemize}
+\item In appendix \ref{sec:beta-binom-distr}, we give additional
+  information regarding the formal expression of the
+  beta-binomial distribution used in the model.\\
+
+\item In appendix \ref{sec:aver-pred-comp}, we give additional
+  information regarding the average predictive comparison calculated
+  to assess the effect of the year in our model of the prevalence.\\
+
+\item In appendix \ref{sec:rati-underly-devel}, we describe how we
+  derived our two indicators of the prevalence level and trend.\\
+  
+\item In appendix \ref{sec:r-code-used}, we give the R code used to fit
+  the model and simulate virtual situations to test the indicators, as
+  well as additional checks of the fitted models
+  (goodness of fit, MCMC convergence).\\
+
+\item In appendix \ref{sec:prel-gener-addit}, we describe a preliminary
+  modelling approach relying on generalized additive models that we
+  used as a first exploratory approach to confirm the additivity of
+  space and time effects.\\
+\end{itemize}
+
+\newpage
+
+\section{The beta-binomial distribution}
+\label{sec:beta-binom-distr}
+
+Our model suppose that the number $y_{it}$ of animals actually
+infected among the $N_{it}$ trapped and tested animals in commune $i$
+during year $t$ can be described by a beta-binomial distribution:
+$$
+y_{it} \sim  \mbox{Beta-Binomial}(N_{it}, p_{it}, \rho)
+$$
+Where $p_{it}$ is the true mean prevalence in commune $i$ during year
+$t$, and $\rho$ is the correlation between the infection status
+of two badgers randomly drawn in our dataset (both $p_{it}$ and $\rho$
+are estimated by the model fit).\\
+
+In this appendix, we describe the parameterization of the beta
+distribution as a function of the prevalence and correlation between
+animals.\\
+
+The beta-binomial distribution is a commonly used distribution to
+account for a correlation between Bernoulli variables
+\citep{Hisakado2006, Martin2011a}. A variable $y$ follows a
+beta-binomial distribution if $y$ follows a binomial distribution
+characterized by a size $N$ and a probability $p$ randomly distributed
+according to a beta distribution with parameters $\alpha$ and
+$\beta$. The probability of a beta-binomial variable $y$ is therefore:
+$$
+P(y | N, \alpha,\beta) = \left ( \begin{array}{c}
+                                   N\\
+                                   y \end{array} \right )
+  \frac{\mbox{B}(y+\alpha, N-y+\beta)}{\mbox{B}(\alpha,\beta)}
+$$
+With $\left ( \begin{array}{c} N\\y \end{array} \right )$ the binomial
+coefficient, and the beta function $\mbox{B}(u,v)$ is calculated by:
+$$
+B(u,v) = \frac{\Gamma(u)\Gamma(v)}{\Gamma(u+v)}
+$$
+and $\Gamma(x)$ is the gamma function (extension of the factorial
+function).\\
+
+Note that this distribution is characterized by an expectation equal to:
+$$
+\mu=Np'
+$$
+with $p'$ the mean probability, calculated by:
+$$
+p' = \frac{\alpha}{\alpha+\beta}
+$$
+In our model, this parameter $p'$ is the mean prevalence $p_{it}$
+modelled as a function of the year and commune in our
+approach.\\
+
+\citet{Hisakado2006} show that the beta-binomial distribution can be
+used to model the correlation between the infection status of two
+animals randomly drawn in the population. Indeed, if $y$ follows a
+beta-binomial distribution, then the infection status of two randomly
+drawn animals is correlated, with a correlation coefficient equal to:
+$$
+\rho = \frac{1}{\alpha + \beta + 1}
+$$
+In other words, the beta-binomial distribution can be considered as a
+particular distribution corresponding to the sum of $N$ correlated
+Bernoulli variables.\\
+
+We can parameterize the beta-distribution to make this point of view
+clearer. Thus, we represent this distribution as a distribution
+parameterized by $N,p',\rho$.  Note that we can easily transform back
+this distribution to find the parameters $\alpha$ and $\beta$ of the
+beta distribution from the parameters $p',\rho$:
+\begin{eqnarray*}
+  \alpha & = & p' \times \frac{(1-\rho)}{\rho}\\
+  \beta & = & (p' \times \rho - p' - \rho + 1)/\rho
+\end{eqnarray*}
+We can fit the beta-binomial distribution either with the parameters
+$p',\rho$, or with the parameters $\alpha,\beta$.
+
+\newpage
+
+
+\section{The average predictive comparison (APC)}
+\label{sec:aver-pred-comp}
+
+In this appendix, we give additional details on the calculation of the
+APC. Recall that the APC of a variable $u$ in a given model
+corresponds to the \textbf{predicted mean difference of the response
+  variable when the predictive variable $u$ increases by one unit,
+  while other predictive variables are being held constant}. For
+example, when the model is a simple or multiple linear regression
+without interactions, the APC of a predictive variable is simply the
+slope of the variable. However, when the model is more complex
+(e.g. when the variable $u$ interacts with other variables, or when
+the model is nonlinear such as a logistic regression), it is more
+difficult to estimate this ``average slope''.
+
+For example, the coefficient of a variable $u$ in a logistic
+regression describes how the \textit{logit} of the response variable
+itself varies in average when $u$ increases by one unit.  However,
+this coefficient does not bring any direct information about how the
+response variable varies in average for a unit increase in $u$.\\
+
+In our study, $u$ is the variable year, and our aim is to calculate
+the expected difference of the probability of infection when one year
+passes (i.e. the proportion of the population becoming infected in one
+year), which is precisely what the APC of the year estimates in the
+logistic model predicting the prevalence of \textit{M. bovis} infection.\\
+
+We therefore use this approach.  We now describe precisely how to
+estimate the APC for any type of model. Let $y$ be the response
+variable (in our study, the infected/non-infected
+status of animals). Following \citet{Gelman2007}, we define:\\
+
+\begin{itemize}
+\item $u$ the predictive variable for which the APC is to be
+  estimated (in our study, the year).\\
+
+\item $v$ all the other predictive variables in the model (in our
+  study, the commune where the animal was trapped).\\
+\end{itemize}
+
+Let $\theta$ be the vector of parameters of the model. As noted in the
+paper, the \textit{predictive comparison} (PC) associated to a
+variable $u$ in a model is defined by:
+$$
+\delta_u(u^{(1)} \rightarrow u^{(2)}, v, \theta)  =
+\frac{\mbox{E}(y|u^{(2)}, v, \theta) - \mbox{E}(y|u^{(1)}, v, \theta)}{u^{(2)}-u^{(1)}}
+$$
+This PC describes how the response variable varies when the predictive
+variable of interest varies from $u^{(1)}$ to $u^{(2)}$, the value of
+other predictive variables $v$ and the model parameters $\theta$ being
+held constant. When we work with a model with a known structure, and
+when the parameters $\theta$ are known, and when the variables $v$
+have a known value, we can easily calculate the expectation of the
+response variable $\mbox{E}(y|u, v, \theta)$ from the
+model. Therefore, for a vector of parameters $\theta$ and given values
+$v$, it is easy to calculate the PC of the variable in the
+model.\\
+
+The average PC -- or APC -- $\Delta_u$ corresponds to the mean of 
+$\delta_u$, calculated over the statistical distribution of
+predictive variables used to fit the model and over the
+posterior distribution of the parameters. Formally:
+\begin{equation}
+  \label{eq:eqdeltau}
+\Delta_u = \frac{\int\int_{u^{(1)}<u^{(2)}} du^{(1)}du^{(2)} \int dv
+  \int d\theta \{E(y|u^{(2)}, v, \theta) - E(y|u^{(1)}, v, \theta)\}
+  p(u^{(1)}|v) p(u^{(2)}|v) p(v)p(\theta)}{\int\int_{u^{(1)}<u^{(2)}}
+  du^{(1)}du^{(2)} \int dv \int d\theta \{u^{(2)} - u^{(1)}\}
+  p(u^{(1)}|v) p(u^{(2)}|v) p(v)p(\theta)} 
+\end{equation}
+We therefore consider, in our dataset, all the pairs of transitions
+from $(u^{(1)}, v^{(1)})$ to $(u^{(2)}, v^{(2)})$, such that
+$v^{(1)} = v^{(2)}$. In other words, we consider all the pairs of
+statistical units of the dataset (in our case, the badgers) for which
+the predictive variables $v$ (the communes) included in the model other
+than the variable of interest $u$ (the year) are held constant.\\
+
+This is theory. Now, \citet{Gelman2007} describe how to calculate
+$\Delta_u$ in practice: the MCMC samples provide a statistical
+distribution for the parameters, i.e.  $p(\theta)$ in equation
+(\ref{eq:eqdeltau}), and the dataset is used to estimate the
+distribution of the predictive variables $p(v)$ and $p(u|v)$ in this
+equation.\\
+
+Thus, one draws $S$ random vectors of parameters $\theta^{(s)}$ from
+the posterior distribution of the distribution (with $S$ large,
+e.g. equal to 1000). If $n$ is the number of individuals in the
+dataset, then one can estimate the APC with:
+\begin{equation}
+  \label{eq:cpm}
+\hat{\Delta}_u = \frac{\sum_{i=1}^n\sum_{j=1}^n\sum_{s=1}^S w_{ij}
+  \{E(y|u_j,v_i,\theta^s)-E(y|u_i,v_i,\theta^s)\}\mbox{sign}(u_j-u_i)
+}{\sum_{i=1}^n\sum_{j=1}^n\sum_{s=1}^S 
+  w_{ij} \{u_j-u_i\}\mbox{sign}(u_j-u_i)}
+\end{equation}
+In other words, this approach consists in averaging, over all possible
+pairs of statistical units in the dataset $i$ and $j$, the difference
+between the values of the response variable predicted by the model
+$E(y|u_j,v_i,\theta^s)-E(y|u_i,v_i,\theta^s)$ for the values of the
+predictive variable $u$ for these two units, while constraining these
+expectations to be conditional on the values of the other predictive
+variables $v$ observed for one of the two units, $i$.\\
+
+The difficulty in the development of an estimator for the APC is that
+equation (\ref{eq:eqdeltau}) relies on both $p(u^{(1)}|v)$ and
+$p(u^{(2)}|v)$ -- the probability to observe variable $u=u^{(1)}$ and
+$u=u^{(2)}$ respectively given a value of $v$. But using the dataset,
+for a given value of $v=v_i$ we have a value $u=u_i$, but we do not
+have $(u_i,v_j)$. In other words, a given badger trapped during a
+given year ($u_i$) is trapped in a given commune $v_i$, but this given
+badger is not trapped the same year in another commune $v_j$. In
+other words, if we set $v=v_i, u^{(1)}=u_i$ and $u^{(2)}=u_j$, the
+data can be used to approximate $p(u^{(1)}|v)=p(u_i|v_i)$ but not
+$p(u^{(2)}|v)=p(u_j|v)$ \citep[see][for further details]{Gelman2007}\\
+
+This is the reason why the estimator includes weights $w_{ij}$, which
+describe the proximity between $v_i$ and $v_j$. The difference between
+predicted values based on the pairs $(i,j)$ has larger weight in the
+calculation of $\hat\Delta_u$ when the other predictive variables $v$
+are similar. The idea is to approximate $p(u^{(2)}|v)$ by giving more
+weight to pairs of individuals with values of $v$ that are close to
+one another (so that $p(u_j|v_i)
+\approx p(u_i|v_i)$).\\
+
+In our study, we defined these proximity weights by:
+$$
+w_{ij} = \frac{1}{1+d_{ij}}
+$$
+with $d_{ij}$ the Euclidean distance between the centroid of the
+communes where the animals $i$ and $j$ were trapped. This weighting
+ensure a larger weight for closer communes. We used this equation to
+estimate the APC of the year for our models.
+
+\newpage
+
+\section{Rationale underlying the development of the indicators of
+  prevalence trend and mean levels}
+\label{sec:rati-underly-devel}
+
+\subsection{On the use of linear regression to estimate the mean
+  proportion of animals becoming infected in one year}
+\label{sec:use-line-regr}
+
+In this appendix, we give more details on the rationale underlying the
+use of the simple linear regresssion to estimate the mean prevalence
+level and the mean prevalence trend during a given period in a given
+cluster.\\ 
+
+Our study of the infection in three clusters makes clear the following
+results: (i) the space and time effects on the prevalence are additive
+(i.e. the highly infected places in a given cluster are the same all
+along the study period, see discussion of the paper and appendix E);
+(ii) the correlation between actual infection status of two animals
+trapped in the same commune is very low and can be ignored as a first
+approximation; (iii) the effect of the year on the prevalence is
+linear (see also appendix E); (iv) there is a large spatial
+variability of the prevalence during a given year.\\
+
+Let us ignore for the moment the variability with time of the
+sensitivity of the tests used to detect \textit{M. bovis} in
+badgers. Let us focus only on the badgers trapped in the highly
+infected communes (i.e. the communes for which the spatial effect
+estimated with the Bayesian model is greater than the mean spatial
+effect). As noted in the paper, by focusing only the highly infected
+communes, we hope that the remaining spatial variability in prevalence
+is negligible (which is confirmed by the simulations). Then, in this
+situation, the changes with time of the epidemiological situation can
+be summarized by a logistic regression of the infection status of
+trapped badger as a function of the year. And the slope of the year in
+such a model completely summarizes how the infection varies with time
+in the
+cluster.\\
+
+However, as noted in the paper (and in appendix B), the slope of a
+variable in a logistic regression can be difficult to understand as
+such by nonspecialists. For this reason, several authors have
+suggested to replace logistic regression by classical Gaussian linear
+regression when the only goal is to estimate an effect of predictive
+variables that must be easy to understand \citep{Hellevik2009,
+  Gomila2020}. Such an approach is extremely simple to implement and
+its coefficients are much more interpretable. For example, a slope for
+the year equal to 0.02 in a linear regression predicting the infection
+status (1 = infected / 0 = non-infected) as a function of the year
+indicates that the proportion of infected animals
+increases by 2\% per year.\\
+
+\subsection{Accounting for the imperfect sensitivity of the tests}
+\label{sec:acco-imperf-sens}
+
+However, we need to account for the imperfect sensitivity of the tests
+in the linear regression. Consider $N$ trapped badgers. Let $t_i$ be
+the year when the animal $i$ has been trapped, $V_i$ the \textit{true}
+infection status of animal $i$, and $B_i$ the infection status
+detected by the test used on the individual $i$. As noted in the
+previous section, if we knew the true infection status of all animals,
+we would fit the following linear regression:
+\begin{equation}
+  \label{eq:lrc}
+V_i = a + b \times t_i + \epsilon_i
+\end{equation}
+with $\epsilon_i$ a residual, and $a,b$ respectively the intercept and
+the slope of the regression line. The coefficient $b$ would therefore
+be an estimator of the mean proportion of the population becoming
+infected in one year in the highly infected communes of the
+cluster.\\
+
+However, the variable $V_i$ is a hidden variable: we do not know the
+true infection status of animal $i$ --
+only the detected status $B_i$.\\
+
+% Three cases must then be distinguished:\\
+
+% \begin{itemize}
+% \item Animal $i$ is actually infected -- so $V_i=1$ -- and the test
+%   detects the infection: $B_i=1$. This happens with a probability
+%   $s_i$ ($s_i$ is the known sensitivity of the test).
+% \item Animal $i$ is actually infected -- so $V_i=1$ -- but the test
+%   does not detect the infection:  $V_i = 0$. This happens with a
+%   probability $1-s_i$. 
+% \item Animal $i$ is not infected ($V_i=0$) and is therefore detected
+%   as not infected: $V_i=0$.\\
+% \end{itemize}
+
+Actually, the variable $B_i$ is a Bernoulli variable:
+$$
+B_i = \mathcal{B}(V_i, s_i)
+$$
+and its expectation is equal to:
+$$
+E(B_i) = V_is_i
+$$
+We can therefore simply replace $V_i$ by $B_i/s_i$ in equation
+(\ref{eq:lrc}). Indeed, $E(B_i/s_i) = V_i$, which suggests that the
+use of this variable as a response variable in a linear regression
+would allow to avoid a bias caused by the test sensitivity. Our linear
+regression therefore becomes:
+\begin{equation}
+  \label{eq:lrc2}
+B_i/s_i = a + b \times t_i + \epsilon_i
+\end{equation}
+
+
+\subsection{The mean prevalence trend}
+\label{sec:mean-prev-trend}
+
+We have showed that the slope of the linear regression (\ref{eq:lrc2})
+can be used as an indicator of the prevalence trend. However, we can
+also use the intercept of the regression as an indicator of the
+prevalence level. Let us recall that in a classical linear regression,
+the intercept corresponds to the expected value of the response
+variable when the predictive variables are equal to 0. Therefore, if
+we modify slightly the linear regression:
+\begin{equation}
+  \label{eq:lrc3}
+B_i/s_i = a + b \times \tilde{t_i} + \epsilon_i
+\end{equation}
+where $\tilde{t_i}$ is the centred year (i.e. $t_i - \bar{t}$, where
+$\bar{t}$ is the middle year of the study period), then 
+$\tilde{t_i} = 0$ corresponds to the middle year of the study period,
+so that the coefficient $a$ measures the expected value of the
+prevalence during the
+middle year of the study period.\\
+
+Thus, the slope and intercepts of equation (\ref{eq:lrc3}) can be used
+as indicators of the prevalence trend and level respectively.
+
+
+\newpage
+
+\section{R code used to fit the model and for the simulations}
+\label{sec:r-code-used}
+
+In this appendix, we provide the R code used to fit the models
+describing the infection of badgers by \textit{M. bovis} in our paper,
+as well as the simulations carried out to test the proposed
+indicators.
+
+\subsection{Model fit}
+\label{sec:model-fit}
+
+\subsubsection{The data}
+\label{sec:data}
+
+We first show how we fitted the models in our study. We illustrate the
+approach with the Dordogne/Charentes cluster, but the reader can
+easily reproduce the same approach for the two other clusters, as the
+Sylvatub data are also provided for these clusters.\\
+
+First we load the package:
+
+<<load-badgertub>>=
+library(badgertub)
+@ 
+
+And then, we load the data for this cluster:
+
+<<load-datasets>>=
+## Two maps
+data(dpt)
+data(cfcdo)
+
+## The Sylvatub dataset
+data(dotub)
+
+str(dotub)
+@
+
+The dataset \texttt{dpt} is an object of class \texttt{"sf"} (from the
+package \texttt{sf}) containing the map of the departments (French
+administrative division); the dataset \texttt{cfcdo} is also an object
+of class \texttt{"sf"} containing the map of the communes of the
+Dordogne/Charentes Cluster. The interested reader can plot with the
+function \texttt{plot()} to see these maps.\\
+
+Finally, the dataset \texttt{dotub} is a list storing the Sylvatub
+data collected in this cluster. More precisely, this list contains two
+sublists, formatted to be directly usable by the package
+\texttt{nimble}. The sublist named \texttt{data}
+contains the following elements:\\
+
+\begin{itemize}
+\item \textbf{\texttt{y}}: For a given commune and a given year, the
+  number of trapped badgers that were analyzed by the Sylvatub network
+  and were identified as positive.\\
+
+\item \textbf{\texttt{Nb}}: For a given commune and a given year, the
+  number of trapped badgers that were analyzed by the Sylvatub
+  network.\\
+
+\item \textbf{\texttt{sensitivity}}: For a given commune and a given
+  year, the sensitivity of the tests used (either 0.5 for a bacterial
+  culture, or 0.75 for a PCR test).\\
+
+\item \textbf{\texttt{year}}: The centred year (i.e. with mean=0) used
+  to fit the model.\\
+  
+\item \textbf{\texttt{adj}}: a vector of indices of the adjacent
+  communes (neighbors) of each commune.  This is a sparse
+  representation of the full adjacency matrix. This vector is used in
+  \texttt{dcar\_normal()} from the package \texttt{nimble} (see the
+  help page of this function).\\
+
+\item \textbf{\texttt{num}}: a vector giving the number of neighboring
+  communes of each commune in the cluster, with length equal to the
+  total number of communes. This vector is also used in
+  \texttt{dcar\_normal()} from the package \texttt{nimble} (see the
+  help page of this function).\\
+
+\item \textbf{\texttt{weights}}: a vector of weights, containing the
+  symmetric unnormalized weights associated with each pair of adjacent
+  locations, of the same length as \texttt{adj}. This vector is also
+  used in \texttt{dcar\_normal()} from the package \texttt{nimble} (see
+  the help page of this function).\\
+\end{itemize}
+The sublist named \texttt{consts} contains the constants used for the
+model fit, i.e.:\\
+
+\begin{itemize}
+\item \textbf{\texttt{N}}: The number of commune-years in the dataset
+  (number of elements of \texttt{y}, \texttt{Nb}, etc., in the
+  component \texttt{data} of this list).\\
+
+\item \textbf{\texttt{P}}: The number of communes of the cluster.\\
+
+\item \textbf{\texttt{L}}: The number of elements in \texttt{adj} (in
+  the component \texttt{data} of this list).\\
+
+\item \textbf{\texttt{ID}}: The commune ID for each element in the the
+  component \texttt{data} of this list (\texttt{y}, \texttt{Nb},
+  etc.)\\
+\end{itemize}
+
+\textbf{Remark}: The same data are available for the two other
+clusters. Thus, \texttt{cfcbo} and \texttt{botub} are respectively the
+map of the communes and Sylvatub dataset for the Burgundy
+cluster. Similarly, \texttt{cfcbe} and \texttt{betub} are respectively
+the map of the communes and Sylvatub dataset for the Bearn
+cluster. The reader can reproduce the model fit for the other two
+clusters by just replacing \texttt{cfcdo} and \texttt{dotub} in the
+code below by these other datasets if they want to reproduce the
+analyses for the other clusters.\\
+
+\subsubsection{Model fit}
+\label{sec:model-fit-1}
+
+We first load the package nimble, required for the fit.
+
+<<load-nimble>>=
+library(nimble)
+@ 
+
+We then program the model with the script language used by the
+package \texttt{nimble}:
+
+<<code-nimble-infection-model>>=
+Tubcode <- nimbleCode({
+    tau ~ dgamma(1,1)
+    slopeYear ~ dnorm(0, 0.01)
+    intercept ~ dnorm(0, 0.01)
+    phi ~ dgamma(0.1,0.1)
+
+    si[1:P] ~ dcar_normal(adj[1:L], weights[1:L], num[1:P], tau)
+
+    for (i in 1:N) {
+        lpim[i] <- intercept + si[ID[i]] + year[i]*slopeYear
+        pim[i] <- exp(lpim[i])/(1+exp(lpim[i]))
+
+        a[i] <- pim[i] * phi
+        b[i] <- phi *(1-pim[i])
+
+        p[i] ~ dbeta(a[i], b[i])
+        y[i] ~ dbinom(prob=p[i]*sensitivity[i],size=Nb[i])
+    }
+})
+@ 
+
+Then, we define starting values for the parameters of the model:
+
+<<starting-values-model>>=
+dotubInits <- list(tau = 0.1, slopeYear = 0.2,
+                   intercept=-3, phi=20,
+                   si=rnorm(dotub$consts$P),
+                   p=rep(0.1, dotub$consts$N))
+@ 
+
+And finally, we use the function \texttt{nimbleMCMC} from the package
+\texttt{nimble} to fit this model, directly passing the components
+\texttt{data} and \texttt{consts} as arguments to this function. We
+sample 4 chains of 1000000 MCMC samples after a burn-in period of 3000
+samples. To save some disk space, we thin the chain by recording one
+sample every 1000. WARNING: THIS CALCULATION TAKES A VERY LONG TIME
+(several hours) !!!! Note that we have included the results of this
+calculation as a dataset of the package, so that the reader does not
+need to launch this function to reproduce further calculations:
+
+<<model-fit, eval=FALSE>>=
+set.seed(777)
+do.mcmc.out <- nimbleMCMC(code = Tubcode, constants = dotub$consts,
+                          data = dotub$data, inits = dotubInits,
+                          nchains = 4, niter = 1003000, nburnin=3000, thin=1000,
+                          summary = TRUE, WAIC = TRUE,
+                          monitors = c('tau',"intercept","slopeYear","phi", "si"))
+@ 
+
+The results of this fit are available in the dataset
+\texttt{do.mcmc.out} of the package:
+
+<<load-results-model-fit>>=
+data(do.mcmc.out)
+@ 
+
+\textbf{Remark:} Similarly, the result of the fit for the Burgundy and
+Bearn clusters are available in the datasets \texttt{bo.mcmc.out} and
+\texttt{be.mcmc.out} respectively.\\
+
+We convert the results to the class \texttt{"mcmc.list"} (package
+\texttt{coda}) to examinate the convergence of the fit. We use the
+function \texttt{nimbleToCoda()} available in the package \texttt{badgertub}:
+
+<<conversion-results-to-coda>>=
+samdo <- (do.mcmc.out$samples)
+ml <- nimbleToCoda(samdo, start=3001, end=1003000, thin=1000)
+@ 
+
+The reader can check visually the convergence of the chain by plotting
+these elements (we omit the results, to save space in this document):
+
+<<plot-chains, eval=FALSE>>=
+plot(ml)
+@ 
+
+We can check more formally this convergence for the parameters of
+the model with the diagnostic of \citet{Gelman1992} (similarly, we
+omit the results, to save space in this document):
+
+<<gelman-diag-complete, eval=FALSE>>=
+library(coda)
+gelman.diag(ml, multivariate=FALSE)
+@ 
+
+
+<<load-coda-silent, echo=FALSE>>=
+library(coda)
+@ 
+
+We just show these diagnostics for the top parameters of the model:
+
+<<gelman-diag-top-parameters>>=
+mlb <- ml
+for (i in 1:4)
+    mlb[[i]] <- mlb[[i]][,1:3]
+gelman.diag(mlb,multivariate=FALSE)
+@ 
+
+These diagnostics are all lower than 1.1 (including those of the
+commune effects, not shown here), as recommended by
+\citet{Gelman1992}. The chain convergence is satisfying.\\
+
+\subsubsection{Goodness of fit}
+\label{sec:goodness-fit}
+
+We used the approach of \citet{Gelman1996c} to check the goodness of
+fit of the model. As noted in the paper, we simulated a replication of
+the Sylvatub dataset for each MCMC sample. We programmed a function to
+perform these simulations, named \texttt{simulateInfectionModel()}
+(see the help page of this function). We now perform these
+simulations. THIS CALCULATION TAKES A VERY LONG TIME !!!! Note that we
+have included the results of this calculation as a dataset of the
+package, so that the reader does not need to launch this function to
+reproduce further calculations:
+
+<<simulate-goodness-of-fit, eval=FALSE>>=
+simDor <- simulateInfectionModel(samdo, dotub$consts, dotub$data)
+@ 
+
+We load the results of these simulations:
+
+<<load-simus-gof>>=
+data(simDor)
+@ 
+
+\textbf{Remark:} Similarly, the simulations carried out for the
+Burgundy and Bearn clusters are available in the datasets
+\texttt{simBou} and \texttt{simBea} respectively.\\
+
+We can now use the function \texttt{compareSimActual()} of the package
+to compare the statistics characterizing the dataset with the same
+statistics calculated on the simulated datasets. More precisely: (i)
+for each combination commune/year, we calculated the 90\% credible
+interval on the number of animals detected as infected expected from
+the model (using the distribution of simulated datasets), and we
+calculated the proportion of commune/years for which the observed
+number fell in this theoretical interval; (ii) we then considered the
+total number of animals detected as infected in each commune over the
+7 years of the study and similarly we calculated the proportion of
+communes for which the observed value fell in the 90\% credible
+interval calculated from this distribution; (iii) we calculated the
+total number of animals detected as infected over all communes of
+the cluster for each year and calculated the proportion of years for
+which the observed value fell in the 90\% credible interval expected
+under the model; (iv) we calculated the 90\% credible interval
+expected under the model on the total number of animals detected as
+infected over all the communes and the years, and compared it to
+the observed value. We show the results of these comparison below:
+
+<<compare-sim-actual-gof>>=
+(csa <- compareSimActual(simDor, dotub$data, dotub$consts))
+@ 
+
+All these comparisons show a correct goodness of fit of the model.
+
+
+\subsubsection{Interpretation of the model}
+\label{sec:interpretation-model}
+
+We can now use the function \texttt{summaryModel()} of the package
+\texttt{badgertub} to show a table of the estimated parameters in our
+model:
+
+<<estimated-parameters-of-the-model>>=
+summaryModel(samdo)
+@ 
+
+This table corresponds to the first three rows of Tab. 1 of the
+paper. We can also use the function \texttt{showSpatialEffects()} to
+draw a map of the spatial effects estimated by our model:
+
+<<map-spatial-random-effects>>=
+showSpatialEffects(samdo,cfcdo,dpt)
+@ 
+
+This map corresponds to Fig. 1 of the paper. We can then use the
+function \texttt{apc()} to estimate the average predictive comparison
+in our model. WARNING !!! THIS CALCULATION TAKES A VERY LONG TIME !!!!
+Note that we have included the results of this calculation as a
+dataset of the package, so that the reader does not need to launch
+this function to reproduce further calculations:
+
+<<calculate-APC, eval=FALSE>>=
+APCdo <- apc(samdo, cfcdo, dotub$consts, dotub$data)
+@ 
+
+We load the dataset containing the results:
+
+<<load-result-calculation-APC>>=
+data(APCdo)
+APCdo
+@ 
+
+\textbf{Remark:} Similarly, the APC calculated for the
+Burgundy and Bearn clusters are available in the datasets
+\texttt{APCbo} and \texttt{APCbe} respectively.\\
+
+This value corresponds to the fourth row of Tab. 1 in the paper. We
+can also calculate the average prevalence level in highly infected
+communes, using the function \texttt{averageLevel()} of the package: 
+
+<<true-mean-prevalence-level>>=
+aldo <- averageLevel(samdo,dotub$data, dotub$consts)
+aldo
+@ 
+
+This value corresponds to the sixth row of Tab. 1 in the
+paper. Finally, we can use a simple linear regression to derive the
+prevalence level and trends indicators. We first need to transform our
+dataset to a dataframe with one row per animal (thanks to the function
+\texttt{nimbleData2df()} of the package), and then to implement the
+regression approach described in the paper:
+
+<<indicators-dordogne>>=
+dfb <- nimbleData2df(dotub$data, dotub$consts, sam=samdo)
+dfb$year <- dfb$year-4
+dfb$response <- dfb$y/dfb$sensitivity
+me <- lm(response~year, data=dfb)
+summary(me)
+@
+
+Which corresponds to the fifth and seventh row of Tab. 1 in the
+paper.
+
+\subsection{Simulations}
+\label{sec:simulations}
+
+In this section, we show the code used for the simulations carried out
+in the paper to demonstrate the usefulness of our indicators.
+
+\subsubsection{First set of simulations}
+\label{sec:first-set-simul}
+
+The first set of simulations was carried out to assess the ability of
+the regression model to estimate the prevalence trend in two different
+situations: (i) low but increasing prevalence, and (ii) high
+prevalence, increasing or decreasing. We define the parameters of the
+simulations below (the comments in the R code explain the parameters):
+
+<<>>=
+## A list of length two (one element per simulated situation).  Each
+## element is a vector containing the limits of the range within which
+## the slope of the year is randomly sampled:
+##
+## - Situation 1: the slope of the year is increasing (i.e. positive
+## slope), and is randomly sampled between 0 and 0.4)
+##
+## - Situation 2: the slope is either increasing or decreasing, and is
+## - sampled between -0.4 and 0.4.
+lirs <- list(c(0,0.4),
+             c(-0.4,0.4))
+##
+## Four trapping pressures are defined here (mean number of trapped
+## animals per commune)
+trap <- c(0.5, 1, 3, 10)
+
+## Two intercepts for the model (either low prevalence = -3.1 or high
+## prevalence -1.38).
+situ <- c(-3.1, -1.38)
+@ 
+
+We then use the function \texttt{simulateIndicator()} to simulate each
+combination of the trapping pressure and epidemiological situation
+1000 times and calculate both the true APC/mean prevalence levels and
+the indicators derived from the linear regression (see the help page
+of \texttt{simulateIndicator()}. WARNING!!!! THIS CALCULATION TAKES A
+VERY LONG TIME (several hours) !!!! Note that we have included the
+results of this calculation as a dataset of the package, so that the
+reader does not need to launch this function to reproduce further
+calculations:
+
+<<first-set-simulations, eval=FALSE>>=
+k <- 1
+res <- list()
+for (i in 1:4) {
+    cat("** Trapping pressure:", trap[i],"\n\n")
+    for (s in 1:2) {
+        cat("Situation:", s,"\n\n")
+        sin <- simulateIndicator(trap[i], cfcdo, situ[s],
+                                 rangeSlope=lirs[[s]],
+                                 nsim=1000, verbose=TRUE)
+        sin$Situation <- c("Low Increasing","High")[s]
+        sin$TrapPress <- paste0("mu = ",trap[i])
+        res[[k]] <- sin
+        k <- k+1
+    }
+}
+resdfsim1 <- do.call(rbind, res)
+resdfsim1$TrapPress <- factor(resdfsim1$TrapPress,
+                              levels=c("mu = 0.5", "mu = 1",
+                                       "mu = 3", "mu = 10"))
+@ 
+
+We load the results of these simulations:
+
+<<>>=
+data(resdfsim1)
+head(resdfsim1)
+@ 
+
+And we can summarize the results by plotting them (corresponding to
+Fig. 2 of the paper):
+
+<<plot-first-set-simus-fig2-paper>>=
+library(ggplot2)
+ggplot(resdfsim1, aes(x=APC, y=SlopeReg))+
+    geom_point(aes(col=TrapPress), alpha=0.5)+
+    geom_abline(slope=1,intercept=0, lwd=1)+
+    facet_grid(Situation~TrapPress)+coord_fixed()+
+    xlab("True prop. of animals becoming infected in one year")+
+    ylab("Estimated value by the regression")+
+    theme(legend.position = "none")
+@ 
+
+As noted in the paper, there is a good agreement between the two
+values. Note that even if these simulations focus on the ability of
+the regression model to recover the true value of the APC of the year,
+we can also examinate the ability of the intercept of the regression
+to recover the true mean prevalence level. Thus, even if we do not
+present these results in the paper, we can plot the mean prevalence
+estimated with the regression as a function of the true mean
+prevalence:
+
+<<estimation-mean-prevalence-first-set-simulations>>=
+ggplot(resdfsim1, aes(x=meanPrev, y=InterceptReg))+
+    geom_abline(slope=1,intercept=0, lwd=1, col="red")+
+    geom_point(alpha=0.5)+
+    facet_grid(Situation~TrapPress)+coord_fixed()+
+    xlab("True mean Prevalence")+
+    ylab("Estimated value by the regression")
+@ 
+
+There is a good agreement between the true value and the estimated
+value. Finally, we can calculate the coverage probability of the 95\%
+confidence intervals with the function \texttt{coverageCI()}:
+
+<<coverage-CI-first-set-of-simulations>>=
+cocia <- coverageCI(resdfsim1$APC,
+                   resdfsim1$SlopeReg,
+                   resdfsim1$SE_SlopeReg,
+                   resdfsim1$Nind,
+                   list(resdfsim1$TrapPress,
+                        resdfsim1$Situation))
+cocia
+@ 
+
+Which corresponds to the results provided Tab. 2 of the paper.
+
+
+\subsubsection{Second set of simulations}
+\label{sec:second-set-simul}
+
+In the second set of simulations, we wanted to assess the ability of
+our regression model to estimate the mean prevalence level during the
+middle year of the study period. We simulated data with our Bayesian
+model, using different values of the intercept
+$\alpha = -4,-3,-2,-1,0$, describing different mean prevalence
+levels. We then randomly sampled a slope $\beta$ in a uniform
+distribution bounded between -0.4 and 0.4. First, we define the
+parameters of the simulations:
+
+<<parameters-second-set-simulations>>=
+## The intercepts
+inter <- -c(4:0)
+
+## The simulated trapping pressures
+trap <- c(0.5, 1, 3, 10)
+@ 
+
+We then use the function \texttt{simulateIndicator()} to perform this
+second set of simulations.  WARNING!!!! THIS CALCULATION TAKES A VERY
+LONG TIME (several hours) !!!! Note that we have included the results
+of this calculation as a dataset of the package, so that the reader
+does not need to launch this function to reproduce further
+calculations:
+
+<<second-set-of-simulations, eval=FALSE>>=
+k <- 1
+for (s in 1:4) {
+    for (i in 1:5) {
+        cat("** Prevalence level:", inter[i],"\n\n")
+        sin <- simulateIndicator(trap[s], cfcdo, inter[i],
+                                 rangeSlope=c(-0.4,0.4),
+                                 nsim=1000, verbose=TRUE)
+        sin$TrueIntercept <- inter[i]
+        sin$TrapPress <- trap[s]
+        res[[k]] <- sin
+        k <- k+1
+    }
+}
+resdfsim2 <- do.call(rbind, res)
+resdfsim2$TrapPress <- paste0("mu = ", resdfsim2$TrapPress)
+resdfsim2$TrapPress <- factor(resdfsim2$TrapPress,
+                              levels=c("mu = 0.5", "mu = 1",
+                                       "mu = 3", "mu = 10"))
+resdfsim2$TrueIntercept <- paste0("alpha = ", resdfsim2$TrueIntercept)
+resdfsim2$TrueIntercept <- factor(resdfsim2$TrueIntercept,
+                                  levels=c("alpha = -4", "alpha = -3",
+                                           "alpha = -2", "alpha = -1",
+                                           "alpha = 0"))
+@ 
+
+We load the result of these simulations:
+
+<<load-results-second-set-of-simulations>>=
+data(resdfsim2)
+head(resdfsim2)
+@ 
+
+We can now plot the results of the simulations, i.e. the mean
+prevalence estimated by the simple linear regressien vs the true mean
+prevalence: 
+
+<<plot-results-second-set-of-simulations>>=
+ggplot(resdfsim2, aes(x=meanPrev, y=InterceptReg))+
+    geom_abline(slope=1,intercept=0, lwd=1, col="red")+
+    geom_point(alpha=0.5)+
+    facet_grid(TrueIntercept~TrapPress)+coord_fixed()+
+    xlab("True mean Prevalence")+
+    ylab("Estimated value by the regression")
+@ 
+
+There is a close agreement between the two values. This figure
+corresponds to Fig. 3 of the paper.\\
+
+Even if this set of simulations was designed to tests the ability of
+the regression intercept to estimate the true mean prevalence, we can
+still look at the ability of its slope to estimate the true APC, for
+our information (even if this plot is not shown in the paper):
+
+<<FOI-second-set-simus-APC>>=
+ggplot(resdfsim2, aes(x=APC, y=SlopeReg))+
+    geom_abline(slope=1,intercept=0, lwd=1, col="red")+
+    geom_point(alpha=0.5)+
+    facet_grid(TrueIntercept~TrapPress)+coord_fixed()+
+    xlab("True prop. of animals becoming infected in one year")+
+    ylab("Estimated value by the regression")
+@ 
+
+There is again a close agreement between the two values. Finally, we
+can use the function \texttt{coverageCI()} to estimate the coverage
+probability of the 95\% confidence intervals of the coefficients:
+
+<<coverage-proba-of-CI-on-mean-prev>>=
+cocim <- coverageCI(resdfsim2$meanPrev,
+                    resdfsim2$InterceptReg,
+                    resdfsim2$SE_InterceptReg,
+                    resdfsim2$Nind,
+                    list(resdfsim2$TrapPress,
+                         resdfsim2$TrueIntercept))
+names(cocim)[1] <- "Intercept"
+cocim
+@
+
+Which corresponds to Tab. 3 of the paper.
+
+
+\section{Preliminary generalized additive models fitted to the
+  datasets}
+\label{sec:prel-gener-addit}
+
+\subsection{Description of the modelling approach}
+\label{sec:descr-modell-appr}
+
+As indicated in the main paper, we carried out an exploratory approach
+by fitting generalized additive models to the
+Sylvatub dataset, to check the assumption of additivity of space and
+time effects in the model.\\
+
+Thus, we first fitted a generalized additive model \citep[GAM,
+][]{Wood2017} to explore the spatio-temporal structures of the
+infection. The commune is the finest available spatial resolution in
+our data, but we transformed our dataset into a spatial point pattern,
+to allow this preliminary exploration; we thus generated a random
+spatial location in the commune of trapping for each animal of the
+database. To account for the change of tests used to detect
+\textit{M. bovis} infection after 2016, we subsampled the data after
+2016: we randomly switched the infection status of one third of the
+animals tested positive after 2016 to ``not infected'', thereby
+simulating a sensitivity of 50\% after 2016. This ensured a constant
+sensitivity of the tests used to detect \textit{M. bovis} during this
+first exploratory step (in the Bayesian model used in the paper, we
+take into account this variable sensitivity in a much better way). All
+these operations are programmed in the function
+\texttt{giveXYhomoSens()} of the
+package \texttt{badgertub} (see below).\\
+
+We then fitted, for each French cluster of \textit{M. bovis}
+infection, a binomial GAM predicting the infection status of the
+animals of the database (infected/not infected) as a function of space
+and time. Let $R_i$ denote the infection status due to
+\textit{M. bovis} for the $i$th individual, $i = 1,...,n$, which
+follows $R_i \sim \mathrm{Bernoulli}(\pi_i)$, where $\pi_i$ denotes
+the probability of infection. A spatial-temporal GAM for modelling the
+infection risk with this dataset is formulated as follows:
+\begin{equation}
+  \label{eq:modexplo1}
+\log \{\pi_i/(1-\pi_i) \} = \alpha_0 + f_t(\mathrm{year}_i) + f_s(X_i,
+X_i) + f_{st}(X_i,X_i,\mathrm{year}_i) 
+\end{equation}
+where $f_t(\mathrm{year}_i)$ denotes an univariate thin plate spline
+(TPS) function of the year and $f_s(X_i,Y_i)$ denotes a bivariate TPS
+function of the spatial coordinates $X_i,Y_i$ of the animal $i$
+\citep{Wood2017}. The interactive effect between space and time
+$f_{st}(X_i,Y_i,\mathrm{year}_i)$ is a linear combination of tensor
+products between the bivariate TPS basis used for the spatial effect
+and the univariate TPS basis used for the time effect. More precisely,
+$f_{st}(\cdot)$ allows to focus on the interaction between the spatial
+and temporal dimensions, while marginal effects of space and time are
+accounted for by $f_t(\cdot)$ and $f_s(\cdot)$
+\citep[see][p. 232]{Wood2017}. This allowed to test the significance
+of these spatio-temporal interactions, using the test developed by
+\citet[section 6.2.1]{Wood2017}, derived from the approach of
+\citet{Nychka1988}.\\
+
+We fitted these models using the package \texttt{mgcv}
+\citep{Wood2017}. Smoothing parameters for these smoothers were
+selected by REML, as this approach allows a the best approximation of
+P-values of significance tests of spatio-temporal interactions
+\citep[p.262]{Wood2017}.\\
+
+\subsection{Implementation for the Dordogne/Charentes cluster}
+\label{sec:impl-dord-clust}
+
+We first attribute coordinates to each trapped badger in the
+Dordogne/Charentes cluster, and subsample the data to homogenize the
+sensitivity of the tests:
+
+<<give-random-coordinates-Dordogne>>=
+set.seed(777)
+xydo <- giveXYhomoSens(dotub$data, dotub$consts, cfcdo)
+head(xydo)
+@ 
+
+We then fitted the full model with space-time interactions:
+
+<<GAM-Dordogne-Charentes>>=
+library(mgcv)
+## Full model with space-time interactions and smoother for the year
+gamdo_full <- gam(y~s(X,Y, k=40)+s(year,k=3)+
+                      ti(X,Y,year, d=c(2,1), k=c(30,3)),
+                  data=xydo, family=binomial, method="REML")
+@ 
+
+We then tested the significance of the space-time interactions:
+
+<<summary-full-model>>=
+summary(gamdo_full)
+@ 
+
+These interactions are not significant. Note also that the estimated
+number of degree of freedom (\texttt{edf}) is equal to 1, confirming
+that the effect of the year is linear (as supposed by our Bayesian
+model).
+
+\subsection{Implementation for the Burgundy cluster}
+\label{sec:impl-burg-clust}
+
+We then load the Sylvatub dataset for the Burgundy cluster, and then
+attribute coordinates to each trapped badger in this cluster, and
+finally subsample the data to homogenize the sensitivity of the tests:
+
+<<give-random-coordinates-Burgundy>>=
+data(botub)
+data(cfcbo)
+
+set.seed(777)
+xybo <- giveXYhomoSens(botub$data, botub$consts, cfcbo)
+@ 
+
+We then fitted the full model with space-time interactions:
+
+<<GAM-Burgundy>>=
+## Full model with space-time interactions and smoother for the year
+gambo_full <- gam(y~s(X,Y, k=40)+s(year,k=3)+
+                      ti(X,Y,year, d=c(2,1), k=c(30,3)),
+                  data=xybo, family=binomial, method="REML")
+@ 
+
+We then tested the significance of the space-time interactions:
+
+<<summary-full-model-Burgundy>>=
+summary(gambo_full)
+@ 
+
+Here again, these interactions are not significant. Note also that in
+this cluster too, the estimated number of degrees of freedom
+(\texttt{edf}) is equal to 1, confirming that the effect of the year
+is also linear here.
+
+
+\subsection{Implementation for the Bearn cluster}
+\label{sec:impl-bearn-clust}
+
+We finally load the Sylvatub dataset for the Bearn cluster, and then
+attribute coordinates to each trapped badger in this cluster, and
+finally subsample the data to homogenize the sensitivity of the tests:
+
+<<give-random-coordinates-Bearn>>=
+data(betub)
+data(cfcbe)
+
+set.seed(777)
+xybe <- giveXYhomoSens(betub$data, betub$consts, cfcbe)
+@ 
+
+We then fitted the full model with space-time interactions:
+
+<<GAM-Bearn>>=
+## Full model with space-time interactions and smoother for the year
+gambe_full <- gam(y~s(X,Y, k=40)+s(year,k=3)+
+                      ti(X,Y,year, d=c(2,1), k=c(30,3)),
+                  data=xybe, family=binomial, method="REML")
+@ 
+
+We then tested the significance of the space-time interactions:
+
+<<summary-full-model-Bearn>>=
+summary(gambe_full)
+@ 
+
+And here again, these interactions are not significant. Note also that in
+this cluster too, the estimated number of degrees of freedom
+(\texttt{edf}) is equal to 1, confirming that the effect of the year
+is also linear here.
+
+
+\begin{thebibliography}{10}
+\providecommand{\natexlab}[1]{#1}
+
+\bibitem[{Calenge et~al.(in prep.)}]{Calengeinprep.}  Calenge,
+  C. et~al. in prep.  \newblock -- Assessing the dynamics of
+  \emph{Mycobacterium bovis} infection in three badger populations. 
+
+\bibitem[{Gelman and Meng(1996)}]{Gelman1996c}
+Gelman, A. and Meng, X. 1996.
+\newblock Model checking and model improvement.
+\newblock --~In: Gilks, W. and Richardson, S. (eds.), Markov chain Monte Carlo
+  in practice, chap.~11. Chapman \& Hall/CRC, pp. 189--201.
+
+\bibitem[{Gelman and Pardoe(2007)}]{Gelman2007}
+Gelman, A. and Pardoe, I. 2007.
+\newblock 2. average predictive comparisons for models with nonlinearity,
+  interactions, and variance components.
+\newblock -- Sociological Methodology 37: 23--51.
+
+\bibitem[{Gelman and Rubin(1992)}]{Gelman1992}
+Gelman, A. and Rubin, D. 1992.
+\newblock {Inference from iterative simulation using multiple sequences}.
+\newblock -- Statistical Science 7: 457--472.
+
+\bibitem[{Gomila(2020)}]{Gomila2020}
+Gomila, R. 2020.
+\newblock Logistic or linear? estimating causal effects of experimental
+  treatments on binary outcomes using regression analysis.
+\newblock -- Journal of Experimental Psychology in press.
+
+\bibitem[{Hellevik(2009)}]{Hellevik2009}
+Hellevik, O. 2009.
+\newblock Linear versus logistic regression when the dependent variable is a
+  dichotomy.
+\newblock -- Quality \& Quantity 43: 59--74.
+
+\bibitem[{Hisakado et~al.(2006)}]{Hisakado2006}
+Hisakado, M. et~al. 2006.
+\newblock Correlated binomial models and correlation structures.
+\newblock -- Journal of Physics A: Mathematical and General 39: 15365.
+
+\bibitem[{Martin et~al.(2011)}]{Martin2011a}
+Martin, J. et~al. 2011.
+\newblock Accounting for non-independent detection when estimating abundance of
+  organisms with a bayesian approach.
+\newblock -- Methods in Ecology and Evolution 2: 595--601.
+
+\bibitem[{Nychka(1988)}]{Nychka1988}
+Nychka, D. 1988.
+\newblock Bayesian confidence intervals for smoothing splines.
+\newblock -- Journal of the American Statistical Association 83: 1134--1143.
+
+\bibitem[{Wood(2017)}]{Wood2017}
+Wood, S.~N. 2017.
+\newblock Generalized Additive Models: An Introduction with R.
+\newblock Chapman \& Hall/CRC Texts in Statistical Science, 2 edn. -- Chapman
+  and Hall / CRC.
+
+\end{thebibliography}
+
+\end{appendices}
+
+\end{document}
