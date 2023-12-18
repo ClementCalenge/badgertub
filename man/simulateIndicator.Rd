@@ -15,7 +15,9 @@
 \usage{
 
 simulateIndicator(trappingPressure, cfc, intercept,
-                  rangeSlope = c(-0.4, 0.4), nsim = 1000,
+                  rangeSlope = c(-0.4, 0.4),
+                  tauu=0.73, rho = 0.04, nonadditive=FALSE,
+                  biasedSample=FALSE, nsim = 1000,
                   verbose = TRUE)
 
 coverageCI(trueval, estimated, se, n, listf, levelCI = 0.95)
@@ -35,6 +37,33 @@ coverageCI(trueval, estimated, se, n, listf, levelCI = 0.95)
   }
   \item{rangeSlope}{
     The range of slopes for the year.
+  }
+  \item{tauu}{
+    The precision parameter of the iCAR process used to simulate
+    communes random effects.
+  }
+  \item{rho}{
+    The within-commune correlation in the simulated prevalence.
+  }
+  \item{nonadditive}{
+    Logical value indicating whether to simulate interactions between
+    year and spatial effects.  If \code{FALSE}, the commune random
+    effects are simulated using the iCAR process as described in the
+    paper and their effect is supposed additive to the year effect.  If
+    \code{TRUE}, two spatial patterns of random effects \code{si1} and
+    \code{si2} are simulated (one for the beginning of the study period
+    and one for the end of the study period), and the random effect of
+    commune i at time t is calculated by
+    \code{si1[i]*((t-1)/6)+si2[i]*(1-(t-1)/6)}.
+  }
+  \item{biasedSample}{
+    Logical value indicating whether to simulate a biased sampling (with
+    more animals sampled in more infected animals).  More precisely, if
+    \code{biaisedSample = TRUE}, the vector of mean numbers of animals
+    sampled in the commune is calculated with
+    \code{trappingPressure*length(si)*exp(si)/sum(exp(si))}, with \code{si} the
+    vector of commune random effects indicating the spatial effects
+    simulated by the iCAR process.
   }
   \item{nsim}{
     The number of simulations.

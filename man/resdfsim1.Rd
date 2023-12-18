@@ -1,12 +1,13 @@
 \name{resdfsim1}
 \alias{resdfsim1}
 \alias{resdfsim2}
+\alias{resdfsim3}
 \docType{data}
 \title{
   Simulations Carried Out in Calenge et al. (in prep.)
 }
 \description{
-  These two datasets contain the results of the simulations carried out
+  These three datasets contain the results of the simulations carried out
   in Calenge et al. (in prep.) to assess the suitability of the two
   indicators (mean prevalence level and mean prevalence trend) derived
   from the linear regression carried out on the Sylvatub dataset (see
@@ -14,7 +15,11 @@
   
 }
 \usage{
-data("resdfsim1")
+data(resdfsim1)
+
+data(resdfsim2)
+
+data(resdfsim3)
 }
 \format{
   A data frame returned by the function \code{simulateIndicator} (see
@@ -28,6 +33,12 @@ data("resdfsim1")
  The dataset \code{resdfsim2} corresponds to the second set of
  simulations carried out in Calenge et al. (in prep.) to estimate the
  mean prevalence level in highly infected communes.
+
+ The dataset \code{resdfsim3} corresponds to the third set of
+ simulations carried out in Calenge et al. (in prep.) to estimate both the
+ trend over time of the infection and the mean prevalence level in
+ highly infected communes, under high spatial heterogeneity, nonrandom
+ sampling and unstable spatial structure of the prevalence (see examples).
 }
 \references{
 
@@ -144,6 +155,70 @@ cocim$TrapPress <- paste0("mu = ", cocim$TrapPress)
 names(cocim)[1] <- "Intercept"
 
 cocim
+
+
+
+#############################################
+##
+## Third set of simulations
+
+data(cfcdo)
+
+\dontrun{
+res <- list()
+interb <- c(0,-2)
+k <- 1
+for (b in 1:6) {
+    for (i in 1:2) {
+        cat("** Intercept:", i,"\n\n")
+        
+        sin <- simulateIndicator(2, cfcdo, interb[i],
+                                 rangeSlope=c(-0.4,0.4),
+                                 biasedSample=((b%%2)==0),
+                                 nonadditive=(b>2&b<5),
+                                 tau=c(0.1,0.73)[(b>2)+1],
+                                 nsim=1000, verbose=TRUE)
+        sin$TrueIntercept <- interb[i]
+        sin$biasedSample <- ((b%%2)==0)
+        sin$nonadditive <- (b>2&b<5)
+        sin$tau <- c(0.1,0.73)[(b>2)+1]
+        res[[k]] <- sin
+        k <- k+1        
+    }
+}
+
+resdfsim3 <- do.call(rbind, res)
+resdfsim3$Situation <- paste0(c("Additive","Interaction")[resdfsim3$nonadditive+1],", ",
+                              c("moderate","strong")[(resdfsim3$tau<0.2)+1])
+resdfsim3$Sampling <- c("random","directed")[resdfsim3$biasedSample+1]
+resdfsim3$TrueIntercept <- paste0("alpha = ", resdfsim3$TrueIntercept)
+resdfsim3$TrueIntercept <- factor(resdfsim3$TrueIntercept,
+                                  levels=c("alpha = -2",
+                                           "alpha = 0"))
+}
+
+data(resdfsim3)
+
+
+cocim3 <- coverageCI(resdfsim3$meanPrev,
+                    resdfsim3$InterceptReg,
+                    resdfsim3$SE_InterceptReg,
+                    resdfsim3$Nind,
+                    list(resdfsim3$Situation,
+                         resdfsim3$Sampling))
+names(cocim3)[1] <- "Intercept"
+cocim3
+
+
+cocis3 <- coverageCI(resdfsim3$APC,
+                    resdfsim3$SlopeReg,
+                    resdfsim3$SE_SlopeReg,
+                    resdfsim3$Nind,
+                    list(resdfsim3$Situation,
+                         resdfsim3$Sampling))
+names(cocis3)[1] <- "Slope"
+cocis3
+
 
 }
 \keyword{datasets}

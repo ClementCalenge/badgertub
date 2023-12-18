@@ -1073,6 +1073,186 @@ cocim
 Which corresponds to Tab. 3 of the paper.
 
 
+
+\subsubsection{Third set of simulations}
+\label{sec:third-set-simul}
+
+The last set of simulations was carried out to assess our regression
+model in more extreme situations. In all cases, we simulated data with
+our Bayesian model, using two different values of the intercept
+$\alpha = -2,0$, describing different mean prevalence levels. We then
+randomly sampled a slope $\beta$ in a uniform distribution bounded
+between -0.4 and 0.4. We simulated two situations:\\
+
+\begin{itemize}
+\item We first simulated the spatial random effects with the iCAR
+  model using a low value of $\tau = 0.1$ (instead of $\tau = $ 0.73
+  in previous simulations) to simulate a very large spatial structure
+  of the infection. When the spatial heterogeneity
+  of the infection is large, there is a large remaining heterogeneity
+  among the highly infected communes, which can pose a problem for the
+  regression model.\\
+
+\item We then simulated a spatial structure of the infection changing
+  with time. More precisely, we simulated two independent sets of
+  commune random effects $\{u_i^{(1)}\}$ and $\{u_i^{(2)}\}$ using the
+  iCAR model parameterized with $\tau = 0.73$. We then simulated data
+  using a Bayesian model, using for each year $t$ the commune effects
+  $\tilde{u}_i = ((t-1)/6) \times u_i^{(1)} + (1-(t-1)/6) \times
+  u_i^{(2)}$, so that the commune effect transitions from the first
+  set to the second set of commune effects. This simulation violated
+  the assumption of additivity between space and time effects on the
+  prevalence.\\  
+\end{itemize}
+
+We simulated these two situations and calculated the two pairs of
+parameters of interest (mean prevalence and mean proportion of animals
+becoming infected in one year) under the two models (simulated
+Bayesian model and regression model), to assess the ability of the
+regression model to retrieve the true values. For each situation, we
+simulated two sampling designs: (i) the classical random sample used
+in previous situations, i.e. we generated a number of trapped animals
+for each year and each commune of the cluster from a binomial negative
+distribution with mean $\mu=2$ and dispersion parameter
+$\theta = 0.48$; (ii) a strongly biased sample where one samples more
+individuals in more infected communes than in less infected communes,
+i.e. we generated a number of trapped animals for each year and each
+commune $i$  of the cluster from a binomial negative distribution with mean
+$\mu_i = 2 \times M \times u_i/(\sum_j u_j)$ (where $M$ is the total
+number of communes in the Dordogne/Charentes cluster) and dispersion
+parameter $\theta = 0.48$. Our aim was to demonstrate how biased
+sampling exacerbate the effect of the violation of hypotheses of
+additivity of space and time effects, and of small remaining spatial
+heterogeneity in highly infected communes.\\
+
+To allow a point of comparison, we also simulated the same situation
+with random sampling, additivity of space and time effects, and
+moderate spatial heterogeneity (i.e. $\tau = 0.73$).\\
+
+We use the function \texttt{simulateIndicator()} to perform this third
+set of simulations.  WARNING!!!! THIS CALCULATION TAKES A VERY LONG
+TIME (several hours) !!!! Note that we have included the results of
+this calculation as a dataset of the package, so that the reader does
+not need to launch this function to reproduce further calculations:
+
+<<third-set-of-simulations, eval=FALSE>>=
+res <- list()
+interb <- c(0,-2)
+k <- 1
+for (b in 1:6) {
+    for (i in 1:2) {
+        cat("** Intercept:", i,"\n\n")
+        
+        sin <- simulateIndicator(2, cfcdo, interb[i],
+                                 rangeSlope=c(-0.4,0.4),
+                                 biasedSample=((b%%2)==0),
+                                 nonadditive=(b>2&b<5),
+                                 tau=c(0.1,0.73)[(b>2)+1],
+                                 nsim=1000, verbose=TRUE)
+        sin$TrueIntercept <- interb[i]
+        sin$biasedSample <- ((b%%2)==0)
+        sin$nonadditive <- (b>2&b<5)
+        sin$tau <- c(0.1,0.73)[(b>2)+1]
+        res[[k]] <- sin
+        k <- k+1        
+    }
+}
+
+resdfsim3 <- do.call(rbind, res)
+resdfsim3$Situation <- paste0(c("Additive","Interaction")[resdfsim3$nonadditive+1],", ",
+                              c("moderate","strong")[(resdfsim3$tau<0.2)+1])
+resdfsim3$Sampling <- c("random","directed")[resdfsim3$biasedSample+1]
+resdfsim3$TrueIntercept <- paste0("alpha = ", resdfsim3$TrueIntercept)
+resdfsim3$TrueIntercept <- factor(resdfsim3$TrueIntercept,
+                                  levels=c("alpha = -2",
+                                           "alpha = 0"))
+
+@ 
+
+
+We load the results of these simulations:
+
+<<>>=
+data(resdfsim3)
+head(resdfsim3)
+@ 
+
+And we can summarize the results by plotting them (corresponding to
+Fig. 5 We did not distinguish the two simulated
+intercepts $\alpha = 0$ and $\alpha=-2$ (we leave it to the reader to
+check that the conclusions are the same for the two values of $\alpha$
+separately). First, we show the estimated mean proportion of animals
+becoming infected in one year:
+
+<<FOI-third-set-simus-APC>>=
+ggplot(resdfsim3, aes(x=APC, y=SlopeReg))+
+    geom_abline(slope=1,intercept=0, lwd=1, col="red")+
+    geom_point(alpha=0.5)+
+    facet_grid(Sampling~Situation)+coord_fixed()+
+    xlab("APC")+
+    ylab("Estimated slope by the regression")
+
+@ 
+
+And then, the estimated mean prevalence of the infection:
+
+<<mean-third-set-simus-APC>>=
+ggplot(resdfsim3, aes(x=meanPrev, y=InterceptReg))+
+    geom_abline(slope=1,intercept=0, lwd=1, col="red")+
+    geom_point(alpha=0.5)+
+    facet_grid(Sampling~Situation)+coord_fixed()+
+    xlab("Mean prevalence")+
+    ylab("Estimated intercept by the regression")
+
+@ 
+
+And finally, we can use the function \texttt{coverageCI()} to estimate
+the coverage probability of the 95\% confidence intervals on the mean
+prevalence: 
+
+<<coverage-proba-of-CI-on-mean-prev-3>>=
+cocim3 <- coverageCI(resdfsim3$meanPrev,
+                    resdfsim3$InterceptReg,
+                    resdfsim3$SE_InterceptReg,
+                    resdfsim3$Nind,
+                    list(resdfsim3$Situation,
+                         resdfsim3$Sampling))
+names(cocim3)[1] <- "Intercept"
+cocim3
+@
+
+...and on the mean proportion of the population becoming infected in
+one year:
+
+<<coverage-proba-of-CI-on-slope-3>>=
+cocis3 <- coverageCI(resdfsim3$APC,
+                    resdfsim3$SlopeReg,
+                    resdfsim3$SE_SlopeReg,
+                    resdfsim3$Nind,
+                    list(resdfsim3$Situation,
+                         resdfsim3$Sampling))
+names(cocis3)[1] <- "Slope"
+cocis3
+@
+
+So that generally, as long as the sample of trapped animals can be
+considered as a random sample, the model is robust to the violation of
+the underlying hypotheses. However, when the animals are
+preferentially trapped in the places where the prevalence is large,
+this exacerbate the bias in the parameters. Thus, the mean prevalence
+will be overestimated (and this bias will be larger when the spatial
+heterogeneity is strong), and the mean proportion of animals becoming
+infected in one year will also be biased (though this bias is much
+smaller than the one affecting the mean prevalence, and can be ignored
+for moderate spatial heterogeneity). Similarly, the nonrandom sampling
+can generate a bias in the estimation of the two parameters when both the
+spatial structure is changing with time and the sampling is directed
+towards the very infected communes.
+
+
+
+
+
 \section{Preliminary generalized additive models fitted to the
   datasets}
 \label{sec:prel-gener-addit}

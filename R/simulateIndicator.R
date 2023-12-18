@@ -1,7 +1,7 @@
 simulateIndicator <-
-function(trappingPressure, cfc, intercept,
-                              rangeSlope=c(-0.4,0.4),
-                              nsim=1000, verbose=TRUE)
+    function(trappingPressure, cfc, intercept, rangeSlope=c(-0.4,0.4),
+             tauu=0.73, rho = 0.04, nonadditive=FALSE, biasedSample=FALSE, nsim=1000,
+             verbose=TRUE)
 {
 
     ## The data.frame with commune/years
@@ -23,7 +23,6 @@ function(trappingPressure, cfc, intercept,
     ei$vec <- ei$vec[,-ncol(ei$vec)]
     ei$val <- ei$val[-length(ei$val)]
     V <- ei$vec%*%diag(ei$val)%*%t(ei$vec)
-    tauu <- 0.73
     V <- V/tauu
 
     ## Distance for APC
@@ -38,23 +37,46 @@ function(trappingPressure, cfc, intercept,
 
         ## Simulation  spatial effects
         si <- MASS::mvrnorm(1,rep(0,ncol(V)),V)
+        if (nonadditive) {
+            si1 <- MASS::mvrnorm(1, rep(0, ncol(V)), V)
+            si2 <- MASS::mvrnorm(1, rep(0, ncol(V)), V)
+        }
 
         ## random SlopeYear
         slopeYear <- runif(1,rangeSlope[1],rangeSlope[2])
 
         ## Trapped animals
-        ssi <- MASS::rnegbin(nrow(expli), trappingPressure, 0.48) ## using parameters estimated by glm.nb on the distri
+        if (biasedSample) {
+            if (nonadditive) {
+                bsi <- si1
+            } else {
+                bsi <- si
+            }
+            utm <- exp(bsi)
+            utm <- utm/sum(utm)
+            traPP <- trappingPressure*utm*length(bsi)
+        } else {
+            traPP <- trappingPressure
+        }
+        ssi <- MASS::rnegbin(nrow(expli), traPP, 0.48) ## using parameters estimated by glm.nb on the distri
         expli$Nb <- ssi
 
         ## model of prevalence
-        lpim <- intercept+si[expli$ID]+expli$year*slopeYear
+        if (nonadditive) {
+            spatef <- sapply(1:nrow(expli), function(u) {
+                (1-(expli$year[u]-1)/6)*si1[expli$ID[u]] + ((expli$year[u]-1)/6)*si2[expli$ID[u]]
+            })
+            si <- (si1+si2)/2
+        } else {
+            spatef <- si[expli$ID]
+        }
+        lpim <- intercept + spatef + expli$year * slopeYear
         pim <- exp(lpim)/(1+exp(lpim))
         lpimo <- intercept+si+4*slopeYear
         pimo <- exp(lpimo)/(1+exp(lpimo))
         pimo <- pimo[si>0]
 
         ## Simulation beta-binomiale
-        rho = 0.04
         a = pim * (1-rho)/rho
         b = (pim * rho - pim - rho + 1)/rho
         b2 <- (1-pim)*((1/rho)-1)
